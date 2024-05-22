@@ -27,7 +27,7 @@ class Generator():
         text_raw = ' '.join([self.unmasker.vocab[id] for id in text_bad_tokens_ids])
         text_tokens_ids = self.unmasker.tokenizer.encode(text_raw)
 
-        for _ in range(20):
+        for _ in range(14):
             print(self.unmasker.tokenizer.decode(text_tokens_ids))
             mask = np.random.binomial(1, 0.3, size=(len(text_tokens_ids),))
             mask_ids = np.where(mask == 1)[0]

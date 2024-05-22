@@ -1,13 +1,17 @@
 import prep_data
 import unmask_model
 import generator
-import torch
 import nltk
+import telebot
+import os
 
-from transformers import AutoModelForMaskedLM, AutoTokenizer
+from telebot import types
+from dotenv import load_dotenv
 
 nltk.download('punkt')
 nltk.download('stopwords')
+
+load_dotenv()
 
 data_prep = prep_data.DataPreparer(
     'output1.txt',
@@ -30,4 +34,17 @@ text_generator = generator.Generator(
     unmasker
 )
 
-print(text_generator.generate())
+bot = telebot.TeleBot(os.getenv('bot_key'))
+
+@bot.message_handler(commands = ['start'])
+def start(message):
+    markup = types.InlineKeyboardMarkup()
+    btn1 = types.InlineKeyboardButton(text='GitHub', url='https://github.com/Roaoch/CyberClassic')
+    btn2 = types.InlineKeyboardButton(text='HuggingHub', url='https://huggingface.co/Roaoch/CyberClassic')
+    markup.add(btn1, btn2)
+    bot.send_message(message.from_user.id, "Репозитории", reply_markup = markup)
+
+@bot.message_handler(commands= ['text'])
+def text_handler(message):
+    if message.text == "/generate":
+        bot.send_message(message.from_user.id, f'Достоевский: {text_generator.generate()}')
