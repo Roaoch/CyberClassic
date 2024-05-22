@@ -1,0 +1,14 @@
+FROM python:3.10
+
+ADD ./data ./data
+ADD generator.py generator.py
+ADD infrastracture.py infrastracture.py
+ADD main.py main.py
+ADD prep_data.py prep_data.py
+ADD unmask_model.py unmask_model.py
+
+RUN pip install -r requirements.txt
+
+CMD ["python", "./main.py"] 
+
+EXPOSE 80:80

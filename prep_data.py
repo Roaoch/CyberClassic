@@ -10,6 +10,10 @@ class DataPreparer:
             'text': []
         }
         for link in self.links_to_texts:
-            with open(f'./data/{link}', encoding='utf8') as text:
-                temp['text'].extend(text.readlines())
+            if '.txt' in link:
+                with open(f'./data/{link}', encoding='utf8') as text:
+                    temp['text'].extend(text.readlines())
+            elif '.xlsx' in link:
+                df = pd.read_excel(f'./data/{link}', names=['text'])
+                temp['text'].extend(df['text'].values)
         return pd.DataFrame(temp)
