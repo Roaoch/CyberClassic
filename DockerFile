@@ -8,9 +8,6 @@ COPY infrastracture.py infrastracture.py
 COPY main.py main.py
 COPY prep_data.py prep_data.py
 COPY unmask_model.py unmask_model.py
-COPY requirements.txt requirements.txt
-
-#RUN sudo apk add gcc python3-dev musl-dev linux-headers
 
 RUN pip install --upgrade pip
 RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
