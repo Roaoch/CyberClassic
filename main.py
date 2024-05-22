@@ -22,12 +22,15 @@ data_prep = prep_data.DataPreparer(
     'output6.txt',
     'output7.txt',
     'output8.txt',
-    'output9.txt'
+    'output9.txt',
+    'Besy.xlsx',
+    'dostoevskii21.xlsx',
+    'Idiot.xlsx'
 )
 
 df = data_prep.get_df()
 
-unmasker = unmask_model.CyberClassicModel(df)
+unmasker = unmask_model.CyberClassicModel(df, is_train=False)
 text_generator = generator.Generator(
     20,
     40,
