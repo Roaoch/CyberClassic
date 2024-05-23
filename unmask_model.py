@@ -11,7 +11,8 @@ from transformers import \
     Trainer, \
     TrainingArguments, \
     DataCollatorForLanguageModeling
-from transformers import AutoTokenizer, pipeline
+from transformers import AutoTokenizer, pipeline, PreTrainedTokenizer, PreTrainedTokenizerFast
+from tqdm import tqdm
 
 from datasets import Dataset, DatasetDict
 
@@ -23,7 +24,7 @@ class ModelDataset():
     def __init__(
         self, 
         df: pd.DataFrame,
-        tokenizer
+        tokenizer: PreTrainedTokenizer | PreTrainedTokenizerFast
     ) -> None:
         self.tokenizer = tokenizer
         self.data = self._prep_data(df=df)
@@ -60,21 +61,23 @@ class CyberClassicModel(torch.nn.Module):
         super().__init__()
         self.df = data_df
         self.vocab = self._get_vocab()
-
-        self.tokenizer: AutoTokenizer = AutoTokenizer.from_pretrained("ai-forever/ruBert-base")
-        self.tokenizer.add_tokens(list(self.vocab.values()))
+        self.vocab_list = list(self.vocab.values())
 
         if is_train:
-            self.base_model: BertForMaskedLM = AutoModelForMaskedLM.from_pretrained("ai-forever/ruBert-base")
-            self.base_model.resize_token_embeddings(len(self.tokenizer))
-            self.data = ModelDataset(df=data_df, tokenizer=self.tokenizer)
-            self.train()
+            self.train(data_df)
 
         self.pipline = pipeline("fill-mask", model="Roaoch/CyberClassic")
 
-    def train(self) -> None:
-        batch_size = 32
-        logging_steps = len(self.data.data["train"]) // batch_size
+    def train(self, df: pd.DataFrame) -> None:
+        tokenizer = AutoTokenizer.from_pretrained("ai-forever/ruBert-base")
+        tokenizer.add_tokens(list(self.vocab.values()))
+
+        base_model: BertForMaskedLM = AutoModelForMaskedLM.from_pretrained("ai-forever/ruBert-base")
+        base_model.resize_token_embeddings(len(tokenizer))
+        data = ModelDataset(df=df, tokenizer=tokenizer)
+
+        batch_size = 16
+        logging_steps = len(data.data["train"]) // batch_size
 
         training_args = TrainingArguments(
             output_dir=f'./models/mask-fill-fine',
@@ -89,26 +92,37 @@ class CyberClassicModel(torch.nn.Module):
             logging_steps=logging_steps,
         )
         trainer = Trainer(
-            model=self.base_model,
+            model=base_model,
             args=training_args,
-            train_dataset=self.data.data["train"],
-            eval_dataset=self.data.data["test"],
-            tokenizer=self.tokenizer,
-            data_collator=self.data.data_col
+            train_dataset=data.data["train"],
+            eval_dataset=data.data["test"],
+            tokenizer=tokenizer,
+            data_collator=data.data_col
         )
         trainer.train()
         trainer.save_model('Roaoch/CyberClassic')
         trainer.push_to_hub()
 
-    def forward(self, x: List[int]) -> List[int]:
+    def forward(self, x: List[int], is_last=False) -> List[int]:
         inputs = np.array(x)
-        mask_token_ids = np.where(inputs == self.tokenizer.mask_token_id)[0]
+        mask_token_ids = np.where(inputs == self.pipline.tokenizer.mask_token_id)[0]
 
         for mask in mask_token_ids:
-            text = self.tokenizer.decode(x)
+            text = self.pipline.tokenizer.decode(x)
             sugestions = self.pipline(text)
-            best = sugestions[0][0] if isinstance(sugestions[0], list) else sugestions[0]
-            x[mask] = best['token']
+            if isinstance(sugestions[0], list):
+                best = list(sorted(sugestions[0], key=lambda e: e['score'], reverse=True))[0]
+            else:
+                best = sugestions[0]
+
+            best_token = best['token'] \
+                if best['score'] >= 0.1 or is_last \
+                else self.pipline.tokenizer.convert_tokens_to_ids(str(np.random.choice(self.vocab_list, 1)[0]))
+            x[mask] = best_token
+            
+            tqdm.write(f'Mask id = {mask}')
+            tqdm.write(f'   Actual: {self.pipline.tokenizer.convert_ids_to_tokens(best_token)}')
+            tqdm.write(f'   Score: {best["score"]:.2f} Token: {best["token_str"]}')
 
         return x
 
