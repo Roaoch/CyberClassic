@@ -18,7 +18,7 @@ class Generator():
         self.max_length = max_length
         self.unmasker: unmask_model.CyberClassicModel = unmask_model.CyberClassicModel() if unmask_model is None else umasker
 
-    def generate(self, n_epochs=10) -> str:
+    def generate(self, n_epochs=13) -> str:
         max_index = len(self.unmasker.vocab) - 1
         text_bad_tokens_ids = np.random.randint(
             low=1, 
