@@ -25,7 +25,8 @@ text_generator = GAN(
     df_path='./dataset.csv',
     false_df_path='./false_dataset.csv',
     machine_df_path='./false_dataset.csv',
-    is_train=True
+    is_train=False,
+    n_epochs=12
 )
 # router = Router()
 

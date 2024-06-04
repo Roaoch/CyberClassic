@@ -1,97 +1,122 @@
 import torch
+import math
+import json
 
 import pandas as pd
+import numpy as np
 
-from src.encoder import Encoder
-from src.descriptor import Descriminator
+from typing import Any
 
-from transformers import PreTrainedModel, PretrainedConfig, PreTrainedTokenizer
-from datasets import Dataset
+from transformers import PreTrainedTokenizer, DataCollatorForLanguageModeling, MvpForCausalLM,  AutoModelForCausalLM, GenerationConfig
+from nltk.translate.bleu_score import sentence_bleu
+from datasets import Dataset, DatasetDict
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
-
-
-class GeneratorModelConfig(PretrainedConfig):
-    model_type = 'generatormodel'
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-
-class GeneratorModel(PreTrainedModel):
-    config_class=GeneratorModelConfig
-    def __init__(self, config):
-        super().__init__(config)
-        self.config = config
-        self.model = torch.nn.Sequential(
-            torch.nn.Linear(768, 1536),
-            torch.nn.ReLU(),
-            torch.nn.Linear(1536, 3072),
-            torch.nn.ReLU(),
-            torch.nn.Linear(3072, 6144),
-            torch.nn.ReLU(),
-            torch.nn.Linear(6144, 768*40),
-            torch.nn.LeakyReLU()
-        )
-    def forward(self, input):
-        return self.model(input)
-    
+from tqdm.auto import tqdm 
 
 class Generator(torch.nn.Module):
     def __init__(
             self,
             tokenizer: PreTrainedTokenizer,
-            encoder: Encoder,
-            descriminator: Descriminator,
             df: pd.DataFrame,
-            n_epoch: int,
-            batch_size: int,
-            is_train=False,
+            is_tain=False,
+            max_length=50,
+            min_length=30,
+            batch_size=64,
+            n_epoch=10,
             *args, 
             **kwargs
         ) -> None:
         super().__init__(*args, **kwargs)
         self.tokenizer = tokenizer
-        self.encoder = encoder
-        self.descriminator = descriminator
         self.batch_size = batch_size
-        self.train_dataloader = DataLoader(
-            dataset=Dataset.from_pandas(df=df[:3000]),
-            shuffle=True,
-            batch_size=batch_size
+        self.n_epoch = n_epoch
+        
+        self.generation_config = GenerationConfig(
+            max_new_tokens=max_length,
+            min_new_tokens=min_length,
+            num_beams=2,
+            do_sample=True
         )
         
-        if is_train:
-            self.model = GeneratorModel(GeneratorModelConfig())
-            self.train(n_epoch)
+        if is_tain:
+            self.data_collator = DataCollatorForLanguageModeling(self.tokenizer, mlm=False)
+            self.ds = self._get_ds(df=df)
+            self.train_loader = DataLoader(
+                dataset=self.ds['train'],
+                shuffle=True,
+                batch_size=self.batch_size,
+                collate_fn=self.data_collator
+            )
+            self.test_loader = DataLoader(
+                dataset=self.ds['test'],
+                shuffle=False,
+                batch_size=self.batch_size,
+                collate_fn=self.data_collator
+            )
+            self.model = self.train()
         else:
-            self.model = GeneratorModel.from_pretrained('Roaoch/CyberClassic/generator')
+            self.model = AutoModelForCausalLM.from_pretrained('Roaoch/CyberClassic/generator')
 
-    def train(self, n_epoch: int):
+    def encode(self, input: Any) -> torch.Tensor:
+        last_hidden_state  = self.model(**input, output_hidden_states=True)['hidden_states'][-1]
+        weights_for_non_padding = input.attention_mask * torch.arange(start=1, end=last_hidden_state.shape[1] + 1).unsqueeze(0)
+        sum_embeddings = torch.sum(last_hidden_state * weights_for_non_padding.unsqueeze(-1), dim=1)
+        num_of_none_padding_tokens = torch.sum(weights_for_non_padding, dim=-1).unsqueeze(-1)
+        return sum_embeddings / num_of_none_padding_tokens
+
+    def forward(self, input: Any) -> torch.Tensor:
+        return self.model(**input, output_hidden_states=True)
+    
+    def generate(self, input: Any) -> torch.Tensor:
+        return self.model.generate(**input, generation_config=self.generation_config)
+
+    def _get_ds(self, df: pd.DataFrame) -> DatasetDict:
+        def group_texts(examples):
+            concatenated_examples = {k: sum(examples[k], []) for k in examples.keys()}
+            total_length = len(concatenated_examples[list(examples.keys())[0]])
+            if total_length >= self.batch_size:
+                total_length = (total_length // self.batch_size) * self.batch_size
+            result = {
+                k: [t[i : i + self.batch_size] for i in range(0, total_length, self.batch_size)]
+                for k, t in concatenated_examples.items()
+            }
+            result["labels"] = result["input_ids"].copy()
+            return result
+        
+        ds = Dataset.from_pandas(df)
+        ds = ds.map(lambda e: self.tokenizer(e['text']), remove_columns=['text'])
+        ds = ds.map(group_texts, batched=True)
+        return ds.train_test_split(0.1)
+    
+    def train(self) -> MvpForCausalLM:
+        model = AutoModelForCausalLM.from_pretrained('ai-forever/rugpt3small_based_on_gpt2')
+
         print('<--- Train Generator --->')
         lr = 1e-3
+        num_update_steps_per_epoch = len(self.train_loader)
 
-        optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr)
-        loss_fn = torch.nn.MSELoss()
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
         scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer=optimizer,
             max_lr=lr,
-            epochs=n_epoch,
-            steps_per_epoch=len(self.train_dataloader)
+            epochs=self.n_epoch,
+            steps_per_epoch=num_update_steps_per_epoch
         )
 
-        progress_bar = tqdm(range(n_epoch * len(self.train_dataloader)))
+        progress_bar = tqdm(range(self.n_epoch * num_update_steps_per_epoch))
+        metrics = {
+            'loss': [],
+            'perplexity': [],
+            'bleu_score': []
+        }
 
-        for i in range(n_epoch):
+        for i in range(self.n_epoch):
             epoch_loss = 0
-            for batch in self.train_dataloader:
-                encoded_true = [self.encoder.encode(text).tolist() for text in batch['text']]
-                encoded_true = torch.Tensor(encoded_true).reshape(len(batch['text']), 768*40)
-                encoded_cls = [self.encoder(text).tolist() for text in batch['text']]
-                encoded_cls = torch.Tensor(encoded_cls)
-            
-                outputs = self.model(encoded_cls)
-                loss = loss_fn(outputs, encoded_true)
+            for batch in self.train_loader:
+                output = model(**batch)
+                loss = output.loss
                 loss.backward()
+
                 optimizer.step()
                 scheduler.step()
                 optimizer.zero_grad()
@@ -99,18 +124,34 @@ class Generator(torch.nn.Module):
 
                 epoch_loss += loss.item()
 
-            tqdm.write(f'Epoch= {i}, Loss= {epoch_loss}')
-            
-            # with torch.no_grad():
-            #     metric = []
-            #     valid_bar = tqdm(range(len(self.test_dataloader)))
-            #     for batch in self.test_dataloader:
-            #         labels: torch.Tensor = batch['label'].reshape(-1, 1).float()
-            #         outputs = self(batch['text'])
-            #         metric.append(self._get_true_negative(outputs, labels))
-            #         valid_bar.update(1)
+            with torch.no_grad():
+                losses = []
+                valid_bar = tqdm(range(len(self.test_loader)))
+                for batch in self.test_loader:
+                    outputs = model(**batch)
+                    loss = outputs.loss
+                    losses.append(loss.item())
 
-            #     tqdm.write(f'Epoch= {i}, True Negative={np.mean(metric)}, Loss= {epoch_loss}')
+                    fake = model.generate(
+                        input_ids=batch['input_ids'][:, :3],
+                        attention_mask=batch['attention_mask'][:, :3],
+                        generation_config=self.generation_config
+                    )
+                    fake_texts = self.tokenizer.batch_decode(fake)
+                    true_texts = self.tokenizer.batch_decode(batch['input_ids'])
+                    bleu_score = np.mean([sentence_bleu(true_texts[i], fake_texts[i]) for i in range(len(fake_texts))])
 
+                    valid_bar.update(1)
+
+                losses = torch.Tensor(losses)
+                perplexity = math.exp(torch.mean(losses))
+                tqdm.write(f'Epoch= {i}, Perplexity={perplexity}, Loss= {epoch_loss}, Bleu score= {bleu_score}')
+                metrics['loss'].append(epoch_loss)
+                metrics['perplexity'].append(perplexity)
+                metrics['bleu_score'].append(bleu_score)
+
+        model.save_pretrained('Roaoch/CyberClassic/generator')
+        with open('generator_metrics.json', 'w') as f:
+            json.dump(metrics, f)
         print('<--- Training Generator end --->')
-        self.model.save_pretrained('Roaoch/CyberClassic/generator')
+        return model
