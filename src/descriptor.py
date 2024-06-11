@@ -17,6 +17,17 @@ class DescriminatorModelConfig(PretrainedConfig):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+#             torch.nn.Linear(768, 512),
+#             torch.nn.LayerNorm(),
+#             torch.nn.ReLU(),
+#             torch.nn.Dropout(0.1),
+#             torch.nn.Linear(512, 256),
+#             torch.nn.ReLU(),
+#             torch.nn.Dropout(0.1),
+#             torch.nn.Linear(256, 1),
+#             torch.nn.Dropout(0.1),
+#             torch.nn.LayerNorm(),
+#             torch.nn.Sigmoid()
 
 class DescriminatorModel(PreTrainedModel):
     config_class = DescriminatorModelConfig
@@ -97,7 +108,7 @@ class Descriminator(torch.nn.Module):
             for batch in self.train_dataloader:
                 labels: torch.Tensor = batch['label'].reshape(-1, 1).float()
                 input_tokens = self.tokenizer(batch['text'], return_tensors='pt', padding=True, truncation=True)
-                input_emb = self.encode_tokens(input_tokens)
+                input_emb = self.encode_tokens(**input_tokens)
 
                 outputs = model(input_emb)
                 loss = loss_fn(outputs, labels)
@@ -117,14 +128,14 @@ class Descriminator(torch.nn.Module):
                 for batch in self.test_dataloader:
                     labels: torch.Tensor = batch['label'].reshape(-1, 1).float()
                     input_tokens = self.tokenizer(batch['text'], return_tensors='pt', padding=True, truncation=True)
-                    input_emb = self.encode_tokens(input_tokens)
+                    input_emb = self.encode_tokens(**input_tokens)
 
                     outputs = model(input_emb)
                     try:
                         true_negative.append(self._get_true_negative(outputs, labels))
                         true_posirive.append(self._get_true_positive(outputs, labels))
                     except ValueError as e:
-                        tqdm.write(e)
+                        tqdm.write(str(e))
                     valid_bar.update(1)
 
                 true_negative = np.mean(true_negative)

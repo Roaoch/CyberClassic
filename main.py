@@ -1,6 +1,7 @@
 import nltk
 import asyncio
 import os
+import warnings
 
 from src.gan import GAN
 from src.bot.markup import menu_inline, menu_keyboard
@@ -17,17 +18,23 @@ from dotenv import load_dotenv
 nltk.download('punkt')
 nltk.download('stopwords')
 
+warnings.simplefilter("ignore", UserWarning)
+
 load_dotenv()
 
 text_generator = GAN(
     min_length=20,
     max_length=40,
     df_path='./dataset.csv',
-    false_df_path='./false_dataset.csv',
+    false_df_path='./false_dataset_m.csv',
     machine_df_path='./false_dataset.csv',
-    is_train=False,
-    n_epochs=12
+    is_train_generator=False,
+    is_train_discriminator=False,
+    is_train_gan=False,
+    n_epochs=8
 )
+text_generator.generate()
+
 # router = Router()
 
 # TOKEN = os.getenv('bot_key')

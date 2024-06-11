@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 import numpy as np
 
@@ -10,7 +12,7 @@ class DataPreparer:
         self.links_to_texts = list(urls)
         self.data_dir = folder
     
-    def get_df(self) -> pd.DataFrame:
+    def _get_df(self) -> pd.DataFrame:
         temp = {
             'text': []
         }
@@ -22,6 +24,12 @@ class DataPreparer:
                 df = pd.read_excel(f'{self.data_dir}/{link}', names=['text'])
                 temp['text'].extend(df['text'].values)
         return pd.DataFrame(temp)
+
+    def get_df(self) -> pd.DataFrame:
+        regex = '[“”„"]'
+        df = self._get_df()
+        df['text'] = df['text'].transform(lambda x: re.sub(regex, '', x).strip())
+        return df
     
 data_prep = DataPreparer(
     './data/true',
