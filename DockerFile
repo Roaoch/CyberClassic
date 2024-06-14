@@ -2,11 +2,10 @@ FROM python:3.9
 
 WORKDIR /app
 
-COPY --chown=user ./src/bot ./src/bot
-COPY --chown=user ./requirements.txt ./requirements.txt
-COPY --chown=user ./main.py ./main.py
+COPY ./src/bot ./src/bot
+COPY ./requirements.txt ./requirements.txt
+COPY ./main.py ./main.py
 
-RUN pip install --upgrade pip
-RUN pip install aiogram
+RUN pip install aiogram requests python-dotenv
 
-CMD "main.py"
+CMD [ "python", "./main.py"]

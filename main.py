@@ -58,7 +58,7 @@ async def start(msg: Message):
 @router.message(F.text == 'Сгенерировать предложение')
 async def text_handler(msg: Message):
     await msg.answer('Подождите буквально пару секунд')
-    text = json.loads(requests.get('paste your link here').text)
+    text = json.loads(requests.get('https://roaoch-cyberclassic.hf.space/').text)['text']
     await msg.answer(f'Достоевский: {text}', reply_markup=menu_keyboard)
 
 if __name__ == "__main__":
