@@ -30,7 +30,7 @@ router = Router()
 
 TOKEN = os.getenv('BOT_TOKEN')
 WEB_SERVER_HOST = "127.0.0.1"
-WEB_SERVER_PORT = 8080
+WEB_SERVER_PORT = 80
 WEBHOOK_PATH = "/webhook"
 WEBHOOK_SECRET = "pfoasofh782gru23buif78dvfasfasfv"
 BASE_WEBHOOK_URL = "https://cyberclassic.onrender.com"
