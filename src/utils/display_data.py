@@ -7,7 +7,11 @@ gan_metrics = pd.read_json('./rl_metrics.json')
 generator_metrics = pd.read_json('./generator_metrics.json')
 test_generation = pd.read_json('./test_generation.json')
 
-fig, axs = plt.subplots(4, 2)
+fig, axs = plt.subplots(3, 2)
+
+print(discriminator_metrics.describe())
+print(gan_metrics.describe())
+print(generator_metrics.describe())
 
 # Descriminator
 epochs = len(discriminator_metrics)
@@ -23,7 +27,7 @@ axs[0, 0].legend()
 # Descriminator TN/TP
 tn = discriminator_metrics['true_negative'].to_numpy()
 tp = discriminator_metrics['true_positive'].to_numpy()
-axs[0, 1].plot(range(epochs), tn, label='True Neagative')
+axs[0, 1].plot(range(epochs), tn, label='True Negative')
 axs[0, 1].plot(range(epochs), tp, label='True Positive')
 axs[0, 1].set_xlabel('Epoch')
 axs[0, 1].set_ylabel('Metrics')

@@ -9,7 +9,7 @@ from transformers import PretrainedConfig, PreTrainedModel, PreTrainedTokenizer
 from torch.utils.data import DataLoader
 from sklearn.metrics import confusion_matrix
 from tqdm.auto import tqdm
-from typing import List, Callable
+from typing import Callable
 
 
 class DescriminatorModelConfig(PretrainedConfig):
@@ -17,17 +17,6 @@ class DescriminatorModelConfig(PretrainedConfig):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-#             torch.nn.Linear(768, 512),
-#             torch.nn.LayerNorm(),
-#             torch.nn.ReLU(),
-#             torch.nn.Dropout(0.1),
-#             torch.nn.Linear(512, 256),
-#             torch.nn.ReLU(),
-#             torch.nn.Dropout(0.1),
-#             torch.nn.Linear(256, 1),
-#             torch.nn.Dropout(0.1),
-#             torch.nn.LayerNorm(),
-#             torch.nn.Sigmoid()
 
 class DescriminatorModel(PreTrainedModel):
     config_class = DescriminatorModelConfig
@@ -35,13 +24,14 @@ class DescriminatorModel(PreTrainedModel):
         super().__init__(config)
         self.config = config
         self.model = torch.nn.Sequential(
-            torch.nn.Linear(768, 1024),
+            torch.nn.Linear(768, 512),
             torch.nn.ReLU(),
-            torch.nn.Linear(1024, 512),
-            torch.nn.ReLU(),
+            torch.nn.Dropout(0.1),
             torch.nn.Linear(512, 256),
             torch.nn.ReLU(),
+            torch.nn.Dropout(0.1),
             torch.nn.Linear(256, 1),
+            torch.nn.Dropout(0.1),
             torch.nn.Sigmoid()
         )
     def forward(self, input):

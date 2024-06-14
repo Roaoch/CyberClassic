@@ -35,9 +35,9 @@ class Generator(torch.nn.Module):
         self.generation_config = GenerationConfig(
             max_new_tokens=max_length,
             min_new_tokens=min_length,
-            # num_beams=6,
-            # top_k=50,
-            top_p=0.95,
+            num_beams=6,
+            # top_k=20,
+            # top_p=0.95,
             do_sample=True
         )
 
@@ -76,9 +76,22 @@ class Generator(torch.nn.Module):
     def generate(self, input: Any) -> torch.Tensor:
         return self.model.generate(**input, generation_config=self.generation_config)
 
-    def _get_ds(self, df: pd.DataFrame) -> DatasetDict:        
+    def _get_ds(self, df: pd.DataFrame) -> DatasetDict:
+        def group_texts(examples):
+            concatenated_examples = {k: sum(examples[k], []) for k in examples.keys()}
+            total_length = len(concatenated_examples[list(examples.keys())[0]])
+            if total_length >= self.batch_size:
+                total_length = (total_length // self.batch_size) * self.batch_size
+            result = {
+                k: [t[i : i + self.batch_size] for i in range(0, total_length, self.batch_size)]
+                for k, t in concatenated_examples.items()
+            }
+            result["labels"] = result["input_ids"].copy()
+            return result
+        
         ds = Dataset.from_pandas(df)
         ds = ds.map(lambda e: self.tokenizer(e['text']), remove_columns=['text'])
+        ds = ds.map(group_texts, batched=True)
         return ds.train_test_split(0.1)
     
     def train(self) -> MvpForCausalLM:

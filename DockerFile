@@ -2,18 +2,17 @@ FROM python:3.9
 
 WORKDIR /app
 
-COPY ./data ./data
-COPY generator.py generator.py
-COPY infrastracture.py infrastracture.py
-COPY main.py main.py
-COPY prep_data.py prep_data.py
-COPY unmask_model.py unmask_model.py
+COPY ./false_dataset.csv ./false_dataset.csv
+COPY ./dataset.csv ./dataset.csv
+COPY ./Roaoch ./Roaoch
+COPY ./src ./src
+COPY ./main.py ./main.py
 
 RUN pip install --upgrade pip
 RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-RUN pip install pyarrow numpy pandas accelerate datasets Flask huggingface-hub nltk openpyxl python-dotenv tokenizers transformers
-RUN pip install pytelegrambotapi
+RUN pip install pyarrow numpy pandas accelerate datasets nltk openpyxl python-dotenv rouge_score datasets tqdm trl scikit-learn matplotlib transformers
+RUN pip install aiogram
 
 CMD ["python", "./main.py"]
 
-EXPOSE 80:80
+EXPOSE 7860:80

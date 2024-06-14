@@ -52,7 +52,9 @@ df.to_csv('./dataset.csv', index=False)
 
 false_prep = DataPreparer(
     './data/false',
-    'newdataset.xlsx'
+    'newdataset.xlsx',
+    'machine.xlsx'
 )
 false_df = false_prep.get_df()
 false_df.to_csv('./false_dataset.csv', index=False)
+
