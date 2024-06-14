@@ -8,6 +8,6 @@ COPY ./main.py ./main.py
 
 RUN pip install aiogram requests python-dotenv
 
-EXPOSE 80
+EXPOSE 3000
 
 CMD [ "python", "./main.py"]

@@ -8,6 +8,7 @@ import json
 from src.bot.markup import menu_inline, menu_keyboard
 
 from aiohttp import web
+from contextlib import suppress
 
 from aiogram import Bot, Dispatcher
 from aiogram.types import Message
@@ -16,9 +17,6 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
-from aiogram.utils.markdown import hbold
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
-
 from dotenv import load_dotenv
 
 warnings.simplefilter("ignore", UserWarning)
@@ -27,36 +25,25 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 router = Router()
+routes = web.RouteTableDef()
 
 TOKEN = os.getenv('BOT_TOKEN')
-WEB_SERVER_HOST = "127.0.0.1"
-WEB_SERVER_PORT = 80
-WEBHOOK_PATH = "/webhook"
-WEBHOOK_SECRET = "pfoasofh782gru23buif78dvfasfasfv"
-BASE_WEBHOOK_URL = "https://cyberclassic.onrender.com"
 
-async def on_startup(bot: Bot) -> None:
-    await bot.set_webhook(f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}", secret_token=WEBHOOK_SECRET)
-
-def main():
+async def main():
     bot = Bot(
         token=TOKEN, 
         default=DefaultBotProperties(parse_mode=ParseMode.HTML)
     )
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
 
-    dp.startup.register(on_startup)
-    app = web.Application()
-    webhook_requests_handler = SimpleRequestHandler(
-        dispatcher=dp,
-        bot=bot,
-        secret_token=WEBHOOK_SECRET,
-    )
-    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
-    setup_application(app, dp, bot=bot)
-    web.run_app(app, host=WEB_SERVER_HOST, port=WEB_SERVER_PORT)
-    # await dp.start_polling(bot)
+@routes.get("/")
+async def index(request):
+    # data = json.loads(requests.get('https://roaoch-cyberclassic.hf.space/').text)
+    return web.Response(text='https://t.me/cyber_classic_bot')
+
 
 @router.message(Command('start'))
 async def start(msg: Message):
@@ -81,5 +68,18 @@ async def text_handler(msg: Message):
     text = json.loads(requests.get('https://roaoch-cyberclassic.hf.space/').text)['text']
     await msg.answer(f'Достоевский: {text}', reply_markup=menu_keyboard)
 
+async def run_bot_task(_app):
+    task = asyncio.create_task(main())
+
+    yield
+
+    task.cancel()
+    with suppress(asyncio.CancelledError):
+        await task
+
 if __name__ == "__main__":
-    main()
+    app = web.Application()
+    app.add_routes(routes)
+    app.cleanup_ctx.append(run_bot_task)
+    web.run_app(app, port=3000)
+    # asyncio.run(main())
