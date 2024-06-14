@@ -53,7 +53,7 @@ class GAN(torch.nn.Module):
             batch_size=16,
         )
 
-        self.tokenizer = AutoTokenizer.from_pretrained('ai-forever/rugpt3small_based_on_gpt2')
+        self.tokenizer = AutoTokenizer.from_pretrained('Roaoch/CyberClassic-Generator')
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.generator = Generator(
             tokenizer=self.tokenizer,

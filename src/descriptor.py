@@ -67,7 +67,7 @@ class Descriminator(torch.nn.Module):
             batch_size=batch_size,
         )
 
-        self.model = self.train() if is_train else DescriminatorModel.from_pretrained('Roaoch/CyberClassic/descriminator')
+        self.model = self.train() if is_train else DescriminatorModel.from_pretrained('Roaoch/CyberClassic-Discriminator')
 
     def forward(self, x: torch.FloatTensor):
         return self.model(x)

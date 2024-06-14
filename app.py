@@ -1,6 +1,7 @@
 import asyncio
 import os
 import warnings
+import logging
 
 from src.gan import GAN
 from src.bot.markup import menu_inline, menu_keyboard
@@ -15,6 +16,7 @@ from aiogram.client.default import DefaultBotProperties
 from dotenv import load_dotenv
 
 warnings.simplefilter("ignore", UserWarning)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -33,7 +35,7 @@ text_generator = GAN(
 
 router = Router()
 
-TOKEN = os.getenv('bot_key')
+TOKEN = os.getenv('BOT_TOKEN')
 
 async def main():
     bot = Bot(
@@ -72,4 +74,5 @@ async def text_handler(msg: Message):
     await msg.answer(f'Достоевский: {text}', reply_markup=menu_keyboard)
 
 if __name__ == "__main__":
+    logger.info('Model has been prepared')
     asyncio.run(main())

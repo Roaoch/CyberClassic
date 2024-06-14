@@ -61,7 +61,7 @@ class Generator(torch.nn.Module):
             )
             self.model = self.train()
         else:
-            self.model = AutoModelForCausalLM.from_pretrained('Roaoch/CyberClassic/RL/generator')
+            self.model = AutoModelForCausalLM.from_pretrained('Roaoch/CyberClassic-Generator')
 
     def encode(self, input_ids: Any, attention_mask: Any) -> torch.Tensor:
         last_hidden_state  = self.model(input_ids=input_ids, attention_mask=attention_mask, output_hidden_states=True)['hidden_states'][-1]

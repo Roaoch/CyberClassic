@@ -4,15 +4,12 @@ WORKDIR /app
 
 COPY ./false_dataset.csv ./false_dataset.csv
 COPY ./dataset.csv ./dataset.csv
-COPY ./Roaoch ./Roaoch
 COPY ./src ./src
-COPY ./main.py ./main.py
+COPY ./app.py ./app.py
 
 RUN pip install --upgrade pip
 RUN pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 RUN pip install pyarrow numpy pandas accelerate datasets nltk openpyxl python-dotenv rouge_score datasets tqdm trl scikit-learn matplotlib transformers
 RUN pip install aiogram
 
-CMD ["python", "./app.py"]
-
-EXPOSE 7860:80
+CMD ["python", "app.py"]
