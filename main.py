@@ -38,7 +38,7 @@ BASE_WEBHOOK_URL = "https://cyberclassic.onrender.com"
 async def on_startup(bot: Bot) -> None:
     await bot.set_webhook(f"{BASE_WEBHOOK_URL}{WEBHOOK_PATH}", secret_token=WEBHOOK_SECRET)
 
-async def main():
+def main():
     bot = Bot(
         token=TOKEN, 
         default=DefaultBotProperties(parse_mode=ParseMode.HTML)
@@ -82,4 +82,4 @@ async def text_handler(msg: Message):
     await msg.answer(f'Достоевский: {text}', reply_markup=menu_keyboard)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
