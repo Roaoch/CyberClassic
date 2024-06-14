@@ -1,52 +1,36 @@
-import prep_data
-import unmask_model
-import generator
-import nltk
 import asyncio
 import os
+import warnings
 
-from aiogram.types import \
-    InlineKeyboardButton, \
-    InlineKeyboardMarkup, \
-    KeyboardButton,\
-    ReplyKeyboardMarkup, \
-    ReplyKeyboardRemove, \
-    Message
+from src.gan import GAN
+from src.bot.markup import menu_inline, menu_keyboard
+
 from aiogram import Bot, Dispatcher
+from aiogram.types import Message
 from aiogram.enums.parse_mode import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram import Router, types, F
+from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
 from dotenv import load_dotenv
 
-nltk.download('punkt')
-nltk.download('stopwords')
+warnings.simplefilter("ignore", UserWarning)
 
 load_dotenv()
 
-data_prep = prep_data.DataPreparer(
-    'output1.txt',
-    'output2.txt',
-    'output3.txt',
-    'output4.txt',
-    'output5.txt',
-    'output6.txt',
-    'output7.txt',
-    'output8.txt',
-    'output9.txt',
-    'Besy.xlsx',
-    'dostoevskii21.xlsx',
-    'Idiot.xlsx'
+text_generator = GAN(
+    min_length=30,
+    max_length=50,
+    df_path='./dataset.csv',
+    false_df_path='./false_dataset.csv',
+    machine_df_path='./false_dataset.csv',
+    is_train_generator=False,
+    is_train_discriminator=False,
+    is_train_gan=False,
+    n_epochs=8
 )
-df = data_prep.get_df()
+# text_generator.test_generate()
 
-unmasker = unmask_model.CyberClassicModel(df, is_train=False)
-text_generator = generator.Generator(
-    20,
-    40,
-    unmasker
-)
 router = Router()
 
 TOKEN = os.getenv('bot_key')
@@ -63,22 +47,6 @@ async def main():
         bot, 
         allowed_updates=dp.resolve_used_update_types()
     )
-
-menu_inline = InlineKeyboardMarkup(inline_keyboard=[
-    [
-        InlineKeyboardButton(text='GitHub', url='https://github.com/Roaoch/CyberClassic'),
-        InlineKeyboardButton(text='HuggingHub', url='https://huggingface.co/Roaoch/CyberClassic')
-    ]
-])
-menu_keyboard = ReplyKeyboardMarkup(
-    keyboard=[
-        [
-            KeyboardButton(text='Сгенерировать предложение')
-        ]
-    ],
-    resize_keyboard=True,
-    input_field_placeholder='Нажми кнопку.'
-)
 
 @router.message(Command('start'))
 async def start(msg: Message):
