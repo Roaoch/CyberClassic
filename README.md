@@ -1,11 +1,9 @@
 ---
-title: {{title}}
-emoji: {{emoji}}
-colorFrom: {{colorFrom}}
-colorTo: {{colorTo}}
-sdk: {{sdk}}
-sdk_version: "{{sdkVersion}}"
-app_file: app.py
+title: CyberClassic
+emoji: 🐠
+colorFrom: blue
+colorTo: gray
+sdk: docker
 pinned: false
 ---
 
