@@ -15,4 +15,6 @@ RUN pip install torch torchvision torchaudio --index-url https://download.pytorc
 RUN pip install pyarrow numpy pandas accelerate datasets nltk openpyxl python-dotenv rouge_score datasets tqdm trl scikit-learn matplotlib transformers
 RUN pip install fastapi uvicorn[standard]
 
+EXPOSE 7860
+
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
