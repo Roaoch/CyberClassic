@@ -2,8 +2,9 @@ import asyncio
 import os
 import warnings
 import logging
+import requests
+import json 
 
-from src.gan import GAN
 from src.bot.markup import menu_inline, menu_keyboard
 
 from aiogram import Bot, Dispatcher
@@ -19,19 +20,6 @@ warnings.simplefilter("ignore", UserWarning)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-
-text_generator = GAN(
-    min_length=30,
-    max_length=50,
-    df_path='./dataset.csv',
-    false_df_path='./false_dataset.csv',
-    machine_df_path='./false_dataset.csv',
-    is_train_generator=False,
-    is_train_discriminator=False,
-    is_train_gan=False,
-    n_epochs=8
-)
-# text_generator.test_generate()
 
 router = Router()
 
@@ -70,9 +58,8 @@ async def start(msg: Message):
 @router.message(F.text == 'Сгенерировать предложение')
 async def text_handler(msg: Message):
     await msg.answer('Подождите буквально пару секунд')
-    text = text_generator.generate()
+    text = json.loads(requests.get('paste your link here').text)
     await msg.answer(f'Достоевский: {text}', reply_markup=menu_keyboard)
 
 if __name__ == "__main__":
-    logger.info('Model has been prepared')
     asyncio.run(main())

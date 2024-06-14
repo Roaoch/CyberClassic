@@ -1,7 +1,5 @@
 FROM python:3.9
 
-RUN useradd -m -u 1000 user
-
 WORKDIR /app
 
 COPY --chown=user ./src/bot ./src/bot
