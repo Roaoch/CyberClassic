@@ -13,6 +13,6 @@ RUN pip3 install torch torchvision torchaudio --index-url https://download.pytor
 RUN pip install pyarrow numpy pandas accelerate datasets nltk openpyxl python-dotenv rouge_score datasets tqdm trl scikit-learn matplotlib transformers
 RUN pip install aiogram
 
-CMD ["python", "./main.py"]
+CMD ["python", "./app.py"]
 
 EXPOSE 7860:80
