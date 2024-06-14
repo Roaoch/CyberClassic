@@ -32,11 +32,7 @@ async def main():
     )
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(
-        bot, 
-        allowed_updates=dp.resolve_used_update_types()
-    )
+    await dp.start_polling(bot)
 
 @router.message(Command('start'))
 async def start(msg: Message):
