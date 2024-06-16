@@ -27,11 +27,17 @@ axs[0, 0].legend()
 # Descriminator TN/TP
 tn = discriminator_metrics['true_negative'].to_numpy()
 tp = discriminator_metrics['true_positive'].to_numpy()
-axs[0, 1].plot(range(epochs), tn, label='True Negative')
-axs[0, 1].plot(range(epochs), tp, label='True Positive')
+fn = np.array([1] * len(tn)) - tn
+fp = np.array([1] * len(tn)) - tp
+
+presision = tp / (tp + fp)
+recall = tp / (tp + fn)
+f1 = 2 * ((presision * recall) / (presision + recall))
+
+axs[0, 1].plot(range(epochs), f1, label='f1')
 axs[0, 1].set_xlabel('Epoch')
 axs[0, 1].set_ylabel('Metrics')
-axs[0, 1].set_title('"Попадания"')
+axs[0, 1].set_title('F1')
 axs[0, 1].legend()
 
 # Generator
